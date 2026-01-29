@@ -1,0 +1,38 @@
+{
+  "name": "behavioral-optimizer",
+  "version": "1.0.0",
+  "description": "Behavioral Optimizer - Figma Plugin for Behavior Design Analysis",
+  "main": "code.js",
+  "scripts": {
+    "lint": "eslint --ext .js --ignore-pattern node_modules ."
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@figma/eslint-plugin-figma-plugins": "*",
+    "eslint": "^8.54.0"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended",
+      "plugin:@figma/figma-plugins/recommended"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2020
+    },
+    "env": {
+      "browser": true,
+      "es2020": true
+    },
+    "root": true,
+    "rules": {
+      "no-unused-vars": [
+        "error",
+        {
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_"
+        }
+      ]
+    }
+  }
+}
