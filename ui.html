@@ -1019,6 +1019,21 @@
       font-size: 12px;
       color: var(--text-secondary);
     }
+
+    /* Frame Info */
+    .frame-info {
+      margin-top: 16px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(34, 197, 94, 0.08) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+    }
+
+    .frame-info-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
   </style>
 </head>
 
@@ -1032,8 +1047,8 @@
       </div>
       <div class="header-controls">
         <div class="lang-toggle">
-          <button class="lang-btn active" data-lang="en">EN</button>
-          <button class="lang-btn" data-lang="es">ES</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn active" data-lang="es">ES</button>
         </div>
         <button class="control-btn" id="theme-toggle" title="Toggle theme">
           🌙
@@ -1086,70 +1101,11 @@
         </div>
 
         <div class="criteria-list" id="criteria-list">
-          <div class="criterion-card selected" data-criterion="fogg_ability">
-            <div class="criterion-checkbox"></div>
-            <div class="criterion-content">
-              <div class="criterion-name">
-                <span data-i18n="foggAbility">Fogg's Ability</span>
-                <span class="info-icon">i
-                  <span class="tooltip" data-i18n="foggTooltip">Based on BJ Fogg's Behavior Model</span>
-                </span>
-              </div>
-              <p class="criterion-description" data-i18n="foggDesc">Minimize physical and cognitive effort for users</p>
-            </div>
-          </div>
+          <!-- Criteria will be dynamically populated based on frame content -->
+        </div>
 
-          <div class="criterion-card selected" data-criterion="spark_triggers">
-            <div class="criterion-checkbox"></div>
-            <div class="criterion-content">
-              <div class="criterion-name">
-                <span data-i18n="sparkTriggers">Spark Triggers</span>
-                <span class="info-icon">i
-                  <span class="tooltip" data-i18n="sparkTooltip">Prompts for motivated users</span>
-                </span>
-              </div>
-              <p class="criterion-description" data-i18n="sparkDesc">Clear calls to action for motivated users</p>
-            </div>
-          </div>
-
-          <div class="criterion-card selected" data-criterion="scarcity_urgency">
-            <div class="criterion-checkbox"></div>
-            <div class="criterion-content">
-              <div class="criterion-name">
-                <span data-i18n="scarcityUrgency">Scarcity/Urgency</span>
-                <span class="info-icon">i
-                  <span class="tooltip" data-i18n="scarcityTooltip">Loss aversion psychology</span>
-                </span>
-              </div>
-              <p class="criterion-description" data-i18n="scarcityDesc">Use of loss aversion to drive action</p>
-            </div>
-          </div>
-
-          <div class="criterion-card selected" data-criterion="social_proof">
-            <div class="criterion-checkbox"></div>
-            <div class="criterion-content">
-              <div class="criterion-name">
-                <span data-i18n="socialProof">Social Proof</span>
-                <span class="info-icon">i
-                  <span class="tooltip" data-i18n="socialTooltip">Community validation influence</span>
-                </span>
-              </div>
-              <p class="criterion-description" data-i18n="socialDesc">Influence through community validation</p>
-            </div>
-          </div>
-
-          <div class="criterion-card selected" data-criterion="goal_gradient">
-            <div class="criterion-checkbox"></div>
-            <div class="criterion-content">
-              <div class="criterion-name">
-                <span data-i18n="goalGradient">Goal Gradient</span>
-                <span class="info-icon">i
-                  <span class="tooltip" data-i18n="goalTooltip">Progress motivation effect</span>
-                </span>
-              </div>
-              <p class="criterion-description" data-i18n="goalDesc">Showing progress to increase completion rates</p>
-            </div>
-          </div>
+        <div class="frame-info" id="frame-info" style="display:none;">
+          <p class="frame-info-text" id="frame-info-text"></p>
         </div>
 
         <!-- Custom Context -->
@@ -1364,11 +1320,22 @@
     // State
     let currentStep = 1;
     let hasValidSelection = false;
-    let selectedCriteria = ['fogg_ability', 'spark_triggers', 'scarcity_urgency', 'social_proof', 'goal_gradient'];
+    let selectedCriteria = [];
+    let applicableCriteria = [];
+    let frameInfo = null;
     let analysisData = null;
     let frameName = '';
     let currentLang = 'es';
     let currentTheme = 'light';
+
+    // Criteria definitions for UI
+    const criteriaDefinitions = {
+      fogg_ability: { icon: '🧠', nameKey: 'foggAbility', tooltipKey: 'foggTooltip', descKey: 'foggDesc' },
+      spark_triggers: { icon: '⚡', nameKey: 'sparkTriggers', tooltipKey: 'sparkTooltip', descKey: 'sparkDesc' },
+      scarcity_urgency: { icon: '⏰', nameKey: 'scarcityUrgency', tooltipKey: 'scarcityTooltip', descKey: 'scarcityDesc' },
+      social_proof: { icon: '👥', nameKey: 'socialProof', tooltipKey: 'socialTooltip', descKey: 'socialDesc' },
+      goal_gradient: { icon: '📈', nameKey: 'goalGradient', tooltipKey: 'goalTooltip', descKey: 'goalDesc' }
+    };
 
     // DOM Elements
     const steps = document.querySelectorAll('.step');
@@ -1379,7 +1346,7 @@
     const selectionIcon = document.getElementById('selection-icon');
     const selectionValue = document.getElementById('selection-value');
     const selectionHint = document.getElementById('selection-hint');
-    const criteriaCards = document.querySelectorAll('.criterion-card');
+    const criteriaList = document.getElementById('criteria-list');
     const selectAllBtn = document.getElementById('select-all-btn');
     const contextToggle = document.getElementById('context-toggle');
     const contextContent = document.getElementById('context-content');
@@ -1387,6 +1354,8 @@
     const suggestionsContainer = document.getElementById('suggestions-container');
     const themeToggle = document.getElementById('theme-toggle');
     const langBtns = document.querySelectorAll('.lang-btn');
+    const frameInfoDiv = document.getElementById('frame-info');
+    const frameInfoText = document.getElementById('frame-info-text');
 
     // Initialize
     function init() {
@@ -1413,6 +1382,48 @@
         }
       });
 
+      // Re-render criteria if available
+      if (applicableCriteria.length > 0) {
+        renderCriteriaList();
+      }
+
+      updateButtons();
+    }
+
+    // Render criteria list based on applicable criteria
+    function renderCriteriaList() {
+      const t = translations[currentLang];
+      criteriaList.innerHTML = '';
+
+      applicableCriteria.forEach(criterionKey => {
+        const def = criteriaDefinitions[criterionKey];
+        if (!def) return;
+
+        const isSelected = selectedCriteria.includes(criterionKey);
+
+        const html = `
+          <div class="criterion-card ${isSelected ? 'selected' : ''}" data-criterion="${criterionKey}">
+            <div class="criterion-checkbox"></div>
+            <div class="criterion-content">
+              <div class="criterion-name">
+                <span>${def.icon} ${t[def.nameKey]}</span>
+                <span class="info-icon">i
+                  <span class="tooltip">${t[def.tooltipKey]}</span>
+                </span>
+              </div>
+              <p class="criterion-description">${t[def.descKey]}</p>
+            </div>
+          </div>
+        `;
+
+        criteriaList.innerHTML += html;
+      });
+
+      // Re-attach event listeners
+      document.querySelectorAll('.criterion-card').forEach(card => {
+        card.addEventListener('click', () => toggleCriterion(card));
+      });
+
       updateButtons();
     }
 
@@ -1420,11 +1431,6 @@
     function setupEventListeners() {
       btnNext.addEventListener('click', handleNext);
       btnBack.addEventListener('click', handleBack);
-
-      // Criteria selection
-      criteriaCards.forEach(card => {
-        card.addEventListener('click', () => toggleCriterion(card));
-      });
 
       // Select all
       selectAllBtn.addEventListener('click', toggleSelectAll);
@@ -1557,17 +1563,48 @@
       const t = translations[currentLang];
       hasValidSelection = data.hasValidSelection;
       frameName = data.frameName || '';
+      applicableCriteria = data.applicableCriteria || [];
+      frameInfo = data.frameInfo || null;
 
       if (hasValidSelection) {
         selectionCard.classList.add('has-selection');
         selectionIcon.textContent = '✓';
         selectionValue.textContent = frameName;
         selectionHint.textContent = t.selectedHint;
+
+        // Auto-select all applicable criteria
+        selectedCriteria = [...applicableCriteria];
+
+        // Render the criteria list based on frame content
+        renderCriteriaList();
+
+        // Show frame info
+        if (frameInfo) {
+          const components = [];
+          if (frameInfo.hasButtons) components.push(currentLang === 'es' ? 'botones' : 'buttons');
+          if (frameInfo.hasInputs) components.push(currentLang === 'es' ? 'campos' : 'inputs');
+          if (frameInfo.hasCards) components.push(currentLang === 'es' ? 'tarjetas' : 'cards');
+          if (frameInfo.hasProgress) components.push(currentLang === 'es' ? 'progreso' : 'progress');
+          if (frameInfo.hasRatings) components.push(currentLang === 'es' ? 'ratings' : 'ratings');
+
+          if (components.length > 0) {
+            frameInfoDiv.style.display = 'block';
+            frameInfoText.textContent = currentLang === 'es'
+              ? `📊 Detectado: ${components.join(', ')} (${frameInfo.componentCount} elementos)`
+              : `📊 Detected: ${components.join(', ')} (${frameInfo.componentCount} elements)`;
+          }
+        }
       } else {
         selectionCard.classList.remove('has-selection');
         selectionIcon.textContent = '📐';
         selectionValue.textContent = t.noSelection;
         selectionHint.textContent = t.selectHint;
+
+        // Clear criteria
+        selectedCriteria = [];
+        applicableCriteria = [];
+        criteriaList.innerHTML = '';
+        frameInfoDiv.style.display = 'none';
       }
 
       if (currentStep === 1) {
@@ -1593,8 +1630,9 @@
 
     function toggleSelectAll() {
       const t = translations[currentLang];
-      const allSelected = selectedCriteria.length === 5;
+      const allSelected = selectedCriteria.length === applicableCriteria.length && applicableCriteria.length > 0;
 
+      const criteriaCards = document.querySelectorAll('.criterion-card');
       criteriaCards.forEach(card => {
         if (allSelected) {
           card.classList.remove('selected');
@@ -1606,7 +1644,7 @@
       if (allSelected) {
         selectedCriteria = [];
       } else {
-        selectedCriteria = ['fogg_ability', 'spark_triggers', 'scarcity_urgency', 'social_proof', 'goal_gradient'];
+        selectedCriteria = [...applicableCriteria];
       }
 
       selectAllBtn.innerHTML = allSelected
